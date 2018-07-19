@@ -522,15 +522,15 @@ public final class CardIOActivity extends Activity {
             mFrameOrientation = ORIENTATION_LANDSCAPE_RIGHT;
         }
         if (degrees >= 0 && degrees != mLastDegrees) {
-            mCardScanner.setDeviceOrientation(mFrameOrientation);
-            setDeviceDegrees(degrees);
-            if (degrees == 90) {
-                rotateCustomOverlay(270);
-            } else if (degrees == 270) {
-                rotateCustomOverlay(90);
-            } else {
-                rotateCustomOverlay(degrees);
-            }
+//            mCardScanner.setDeviceOrientation(mFrameOrientation);
+//            setDeviceDegrees(degrees);
+//            if (degrees == 90) {
+//                rotateCustomOverlay(270);
+//            } else if (degrees == 270) {
+//                rotateCustomOverlay(90);
+//            } else {
+//                rotateCustomOverlay(degrees);
+//            }
         }
     }
 
