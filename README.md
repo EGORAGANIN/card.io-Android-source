@@ -2,6 +2,10 @@
 
 [![card.io logo](https://raw.githubusercontent.com/card-io/press-kit/master/card_io_logo_200.png "card.io")](https://www.card.io)
 
+Build require
+=====================================
+- This project use APP_STL := gnustl_static compile only NDK r17
+
 Credit card scanning for Android apps
 =====================================
 
