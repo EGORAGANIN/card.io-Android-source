@@ -53,6 +53,10 @@ public enum CardType {
      */
     MAESTRO("Maestro"),
     /**
+     * Mir
+     */
+    MIR("Mir"),
+    /**
      * Unknown card type.
      */
     UNKNOWN("Unknown"),
@@ -101,6 +105,8 @@ public enum CardType {
                 return LocalizedStrings.getString(StringKey.CARDTYPE_MAESTRO, languageOrLocale);
             case VISA:
                 return LocalizedStrings.getString(StringKey.CARDTYPE_VISA, languageOrLocale);
+            case MIR:
+                return LocalizedStrings.getString(StringKey.CARDTYPE_MIR, languageOrLocale);
             default:
                 break;
         }
@@ -122,6 +128,7 @@ public enum CardType {
             case MAESTRO:
             case VISA:
             case DISCOVER:
+            case MIR:
                 result = 16;
                 break;
             case DINERSCLUB:
@@ -154,6 +161,7 @@ public enum CardType {
             case VISA:
             case DISCOVER:
             case DINERSCLUB:
+            case MIR:
                 result = 3;
                 break;
             case UNKNOWN:
@@ -243,7 +251,7 @@ public enum CardType {
     static {
         // initialize
         intervalLookup = new HashMap<>();
-        intervalLookup.put(getNewPair("2221", "2720"), CardType.MASTERCARD);    // MasterCard 2-series
+        intervalLookup.put(getNewPair("22", null), CardType.MIR);               // Mir
         intervalLookup.put(getNewPair("300", "305"), CardType.DINERSCLUB);      // Diners Club (Discover)
         intervalLookup.put(getNewPair("309", null), CardType.DINERSCLUB);       // Diners Club (Discover)
         intervalLookup.put(getNewPair("34", null), CardType.AMEX);              // AmEx
