@@ -15,6 +15,7 @@ public enum StringKey {
     CARDTYPE_JCB,
     CARDTYPE_MASTERCARD,
     CARDTYPE_MAESTRO,
+    CARDTYPE_MIR,
     CARDTYPE_VISA,
     DONE,
     ENTRY_CVV,

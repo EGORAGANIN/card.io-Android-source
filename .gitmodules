@@ -1,3 +1,4 @@
 [submodule "card.io/src/main/jni/card.io-dmz"]
 	path = card.io/src/main/jni/card.io-dmz
-	url = https://github.com/card-io/card.io-dmz.git
+	url = https://github.com/EGORAGANIN/card.io-dmz.git
+	branch = feature/extend-bin-range
