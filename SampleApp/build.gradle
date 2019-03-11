@@ -19,13 +19,13 @@ repositories {
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 25
-    buildToolsVersion "25.0.2"
+    compileSdkVersion 28
+    buildToolsVersion "28.0.3"
 
     defaultConfig {
         applicationId "io.card.development"
         minSdkVersion 18
-        targetSdkVersion 25
+        targetSdkVersion 28
         versionCode 1
         versionName "1.0.0"
         testInstrumentationRunner 'android.support.test.runner.AndroidJUnitRunner'
@@ -59,4 +59,5 @@ dependencies {
 
     androidTestCompile "com.android.support.test.espresso:espresso-core:2.2.2"
     androidTestCompile "com.github.lkorth:device-automator:01d85912ec"
+    implementation "com.android.support:appcompat-v7:28.0.0"
 }

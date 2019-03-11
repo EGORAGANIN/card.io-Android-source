@@ -38,7 +38,7 @@ import java.util.Map;
  * <p/>
  * HOWEVER, at the moment, the CardScanner is directly communicating with the Preview.
  */
-class CardScanner implements Camera.PreviewCallback, Camera.AutoFocusCallback,
+public class CardScanner implements Camera.PreviewCallback, Camera.AutoFocusCallback,
         SurfaceHolder.Callback {
     private static final String TAG = CardScanner.class.getSimpleName();
 
@@ -84,7 +84,7 @@ class CardScanner implements Camera.PreviewCallback, Camera.AutoFocusCallback,
     private static boolean manualFallbackForError;
 
     // member data
-    protected WeakReference<CardIOActivity> mScanActivityRef;
+    protected WeakReference<CardIOScanDetection> mScanActivityRef;
     private boolean mSuppressScan = false;
     private boolean mScanExpiry;
     private int mUnblurDigits = DEFAULT_UNBLUR_DIGITS;
@@ -189,17 +189,19 @@ class CardScanner implements Camera.PreviewCallback, Camera.AutoFocusCallback,
         return (!manualFallbackForError && (usesSupportedProcessorArch()));
     }
 
-    CardScanner(CardIOActivity scanActivity, int currentFrameOrientation) {
-        Intent scanIntent = scanActivity.getIntent();
-        if (scanIntent != null) {
-            mSuppressScan = scanIntent.getBooleanExtra(CardIOActivity.EXTRA_SUPPRESS_SCAN, false);
-            mScanExpiry = scanIntent.getBooleanExtra(CardIOActivity.EXTRA_REQUIRE_EXPIRY, false)
-                    && scanIntent.getBooleanExtra(CardIOActivity.EXTRA_SCAN_EXPIRY, true);
-            mUnblurDigits = scanIntent.getIntExtra(CardIOActivity.EXTRA_UNBLUR_DIGITS, DEFAULT_UNBLUR_DIGITS);
-        }
-        mScanActivityRef = new WeakReference<>(scanActivity);
+    public CardScanner(CardIOScanDetection scanDetection, int currentFrameOrientation, boolean supressScan) {
+        this.mSuppressScan = supressScan;
+        mScanActivityRef = new WeakReference<>(scanDetection);
         mFrameOrientation = currentFrameOrientation;
         nSetup(mSuppressScan, MIN_FOCUS_SCORE, mUnblurDigits);
+    }
+
+    public void setScanExpiry(boolean scanExpiry) {
+        mScanExpiry = scanExpiry;
+    }
+
+    public void setUnblurDigits(int unblurDigits) {
+        mUnblurDigits = unblurDigits;
     }
 
     /**
@@ -625,7 +627,7 @@ class CardScanner implements Camera.PreviewCallback, Camera.AutoFocusCallback,
     int getRotationalOffset() {
         final int rotationOffset;
         // Check "normal" screen orientation and adjust accordingly
-        int naturalOrientation = ((WindowManager) mScanActivityRef.get().getSystemService(Context.WINDOW_SERVICE))
+        int naturalOrientation = ((WindowManager) mScanActivityRef.get().getActivity().getSystemService(Context.WINDOW_SERVICE))
                 .getDefaultDisplay().getRotation();
         if (naturalOrientation == Surface.ROTATION_0) {
             rotationOffset = 0;

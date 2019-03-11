@@ -4,6 +4,7 @@ package io.card.payment;
  * See the file "LICENSE.md" for the full license governing this code.
  */
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -87,7 +88,7 @@ class OverlayView extends View {
 
     private static final int BUTTON_TOUCH_TOLERANCE = 20;
 
-    private final WeakReference<CardIOActivity> mScanActivityRef;
+    private final WeakReference<CardIOCameraControl> mScanActivityRef;
     private DetectionInfo mDInfo;
     private Bitmap mBitmap;
     GradientDrawable mScanLineDrawable;
@@ -113,11 +114,11 @@ class OverlayView extends View {
     private int mRotationFlip;
     private float mScale = 1;
 
-    public OverlayView(CardIOActivity captureActivity, AttributeSet attributeSet, boolean showTorch) {
-        super(captureActivity, attributeSet);
+    public OverlayView(Context context, CardIOCameraControl cameraControl, AttributeSet attributeSet, boolean showTorch) {
+        super(context, attributeSet);
 
         mShowTorch = showTorch;
-        mScanActivityRef = new WeakReference<CardIOActivity>(captureActivity);
+        mScanActivityRef = new WeakReference<>(cameraControl);
 
         mRotationFlip = 1;
 
@@ -125,7 +126,7 @@ class OverlayView extends View {
         mScale = getResources().getDisplayMetrics().density / 1.5f;
 
         mTorch = new Torch(TORCH_WIDTH * mScale, TORCH_HEIGHT * mScale);
-        mLogo = new Logo(captureActivity);
+        mLogo = new Logo(context);
 
         mGuidePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
