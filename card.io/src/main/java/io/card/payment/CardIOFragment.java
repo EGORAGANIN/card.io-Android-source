@@ -21,6 +21,7 @@ import android.os.Vibrator;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -51,12 +52,6 @@ import io.card.payment.ui.ViewUtil;
 
 public class CardIOFragment extends Fragment implements CardIOScanDetection, CardIOCameraControl
 {
-    /**
-     * Boolean extra. Optional. Defaults to <code>false</code>. If set, the card will not be scanned
-     * with the camera.
-     */
-    public static final String EXTRA_NO_CAMERA = "io.card.payment.noCamera";
-
     /**
      * Boolean extra. Optional. Defaults to <code>false</code>. If
      * set to <code>false</code>, expiry information will not be required.
@@ -121,14 +116,6 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
     private static final String EXTRA_MANUAL_ENTRY_RESULT = "io.card.payment.manualEntryScanResult";
 
     /**
-     * Boolean extra. Optional. Defaults to <code>false</code>. Removes the keyboard button from the
-     * scan screen.
-     * <br><br>
-     * If scanning is unavailable, the {@link android.app.Activity} result will be {@link #RESULT_SCAN_NOT_AVAILABLE}.
-     */
-    public static final String EXTRA_SUPPRESS_MANUAL_ENTRY = "io.card.payment.suppressManual";
-
-    /**
      * String extra. Optional. The preferred language for all strings appearing in the user
      * interface. If not set, or if set to null, defaults to the device's current language setting.
      * <br><br>
@@ -159,6 +146,18 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
     public static final String EXTRA_GUIDE_COLOR = "io.card.payment.guideColor";
 
     /**
+     * Float extra. Optional. Defaults to 0.0f. Changes the corner radius of the guide overlay on the
+     * camera.
+     */
+    public static final String EXTRA_GUIDE_CORNER_RADIUS = "io.card.payment.cornerRadius";
+
+    /**
+     * Float extra. Optional. Defaults to 0.0f. Changes the corner radius of the guide overlay on the
+     * camera.
+     */
+    public static final String EXTRA_GUIDE_BORDER_THICKNESS = "io.card.payment.borderThickness";
+
+    /**
      * Boolean extra. Optional. If this value is set to <code>true</code> the user will not be prompted to
      * confirm their card number after processing.
      */
@@ -175,13 +174,6 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
      * their card.
      */
     public static final String EXTRA_SCAN_INSTRUCTIONS = "io.card.payment.scanInstructions";
-
-    /**
-     * Boolean extra. Optional. Once a card image has been captured but before it has been
-     * processed, this value will determine whether to continue processing as usual. If the value is
-     * <code>true</code> the {@link io.card.payment.CardIOActivity} will finish with a {@link #RESULT_SCAN_SUPPRESSED} result code.
-     */
-    public static final String EXTRA_SUPPRESS_SCAN = "io.card.payment.suppressScan";
 
     /**
      * String extra. If {@link #EXTRA_RETURN_CARD_IMAGE} is set to <code>true</code>, the data intent passed to your
@@ -253,7 +245,7 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
      */
     public static final int RESULT_CONFIRMATION_SUPPRESSED = lastResult++;
 
-    private static final String TAG = io.card.payment.CardIOActivity.class.getSimpleName();
+    private static final String TAG = CardIOFragment.class.getSimpleName();
 
     private static final int DEGREE_DELTA = 15;
 
@@ -288,7 +280,6 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
     private int mLastDegrees;
     private int mFrameOrientation;
     private boolean suppressManualEntry;
-    private boolean mDetectOnly;
     private LinearLayout customOverlayLayout;
     private boolean waitingForPermission;
 
@@ -321,48 +312,21 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
 
         final Bundle clientData = getArguments();
 
-//        Unused
-//        useApplicationTheme = getIntent().getBooleanExtra(io.card.payment.CardIOActivity.EXTRA_KEEP_APPLICATION_THEME, false);
-//        ActivityHelper.setActivityTheme(this, useApplicationTheme);
-
         LocalizedStrings.setLanguage(clientData);
-
-        // Validate app's manifest is correct.
-        mDetectOnly = clientData.getBoolean(EXTRA_SUPPRESS_SCAN, false);
-
-        ResolveInfo resolveInfo;
-        String errorMsg;
-
-        // Check for DataEntryActivity's portrait orientation
-
-//        Unused
-        // Check for CardIOActivity's orientation config in manifest
-//        resolveInfo = getPackageManager().resolveActivity(clientData,
-//                PackageManager.MATCH_DEFAULT_ONLY);
-//        errorMsg = Util.manifestHasConfigChange(resolveInfo, io.card.payment.CardIOActivity.class);
-//        if (errorMsg != null) {
-//            throw new RuntimeException(errorMsg); // Throw the actual exception from this class, for
-            // clarity.
-//        }
-
-        suppressManualEntry = clientData.getBoolean(EXTRA_SUPPRESS_MANUAL_ENTRY, false);
-
 
         if (savedInstanceState != null) {
             waitingForPermission = savedInstanceState.getBoolean(BUNDLE_WAITING_FOR_PERMISSION);
         }
 
-        if (clientData.getBoolean(EXTRA_NO_CAMERA, false)) {
-            manualEntryFallbackOrForced = true;
-        }
-        else if (!CardScanner.processorSupported()) {
+        if (!CardScanner.processorSupported()) {
             manualEntryFallbackOrForced = true;
         }
         else {
             try {
+                // If permission CAMERA denied close fragment
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
                     if (!waitingForPermission) {
-                        if (getActivity().checkSelfPermission(Manifest.permission.CAMERA) ==
+                        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) ==
                                 PackageManager.PERMISSION_DENIED) {
                             String[] permissions = {Manifest.permission.CAMERA};
                             waitingForPermission = true;
@@ -799,15 +763,7 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
                 detectedBitmap.getHeight(), m, false);
         mOverlay.setBitmap(scaledCard);
 
-//        if (mDetectOnly) {
-//            Intent dataIntent = new Intent();
-//            Util.writeCapturedCardImageIfNecessary(getIntent(), dataIntent, mOverlay);
-//
-//            setResultAndFinish(RESULT_SCAN_SUPPRESSED, dataIntent);
-//        }
-//        else {
-//            nextActivity();
-//        }
+//        nextActivity();
     }
 
 //    private void nextActivity() {

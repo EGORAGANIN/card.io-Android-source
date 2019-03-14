@@ -11,6 +11,7 @@ import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Paint.Align;
+import android.graphics.Paint.Style;
 import android.graphics.Path;
 import android.graphics.Point;
 import android.graphics.PorterDuff;
@@ -78,7 +79,7 @@ class OverlayView extends View {
 
     private static final int GUIDE_STROKE_WIDTH = 17;
 
-    private static final float CORNER_RADIUS_SIZE = 1 / 15.0f;
+    private static final float CORNER_RADIUS_SIZE = 1000 / 15.0f;
 
     private static final int TORCH_WIDTH = 70;
     private static final int TORCH_HEIGHT = 50;
@@ -113,6 +114,9 @@ class OverlayView extends View {
     private final boolean mShowTorch;
     private int mRotationFlip;
     private float mScale = 1;
+    private float mGuideStrokeCornerRadius = 0;
+    private float mGuideStrokeWidth;
+    private RectF mGuideRoundedRect;
 
     public OverlayView(Context context, CardIOCameraControl cameraControl, AttributeSet attributeSet, boolean showTorch) {
         super(context, attributeSet);
@@ -136,6 +140,11 @@ class OverlayView extends View {
         mLockedBackgroundPaint.setColor(0xbb000000); // 75% black
 
         scanInstructions = LocalizedStrings.getString(StringKey.SCAN_GUIDE);
+
+        mGuideStrokeWidth = context.getResources().getDimension(R.dimen.cio_guide_stroke_width);
+
+//        Temp
+        mGuideStrokeCornerRadius = context.getResources().getDimension(R.dimen.cio_guide_stroke_width2);
     }
 
     public int getGuideColor() {
@@ -144,6 +153,22 @@ class OverlayView extends View {
 
     public void setGuideColor(int color) {
         guideColor = color;
+    }
+
+    public float getGuideStrokeCornerRadius() {
+        return mGuideStrokeCornerRadius;
+    }
+
+    public void setGuideStrokeCornerRadius(float guideStrokeCornerRadius) {
+        mGuideStrokeCornerRadius = guideStrokeCornerRadius;
+    }
+
+    public float getGuideStrokeWidth() {
+        return mGuideStrokeWidth;
+    }
+
+    public void setGuideStrokeWidth(float guideStrokeWidth) {
+        mGuideStrokeWidth = guideStrokeWidth;
     }
 
     public boolean getHideCardIOLogo() {
@@ -166,6 +191,8 @@ class OverlayView extends View {
     public void setGuideAndRotation(Rect rect, int rotation) {
         mRotation = rotation;
         mGuide = rect;
+        mGuideRoundedRect = new RectF(rect);
+
         invalidate();
 
         Point topEdgeUIOffset;
@@ -196,10 +223,11 @@ class OverlayView extends View {
             mGradientDrawable.setGradientType(GradientDrawable.LINEAR_GRADIENT);
             mGradientDrawable.setBounds(mGuide);
             mGradientDrawable.setAlpha(50);
+            mGradientDrawable.setCornerRadius(mGuideStrokeCornerRadius);
 
             mLockedBackgroundPath = new Path();
             mLockedBackgroundPath.addRect(new RectF(mCameraPreviewRect), Path.Direction.CW);
-            mLockedBackgroundPath.addRect(new RectF(mGuide), Path.Direction.CCW);
+            mLockedBackgroundPath.addRoundRect(new RectF(mGuide), mGuideStrokeCornerRadius, mGuideStrokeCornerRadius, Path.Direction.CCW);
         }
     }
 
@@ -262,17 +290,9 @@ class OverlayView extends View {
             return;
         }
         canvas.save();
-        int tickLength;
 
         // Draw background rect
-
         mGradientDrawable.draw(canvas);
-
-        if ((mRotation == 0) || (mRotation == 180)) {
-            tickLength = (mGuide.bottom - mGuide.top) / 4;
-        } else {
-            tickLength = (mGuide.right - mGuide.left) / 4;
-        }
 
         if (mDInfo != null && mDInfo.numVisibleEdges() == 4) {
             // draw lock shadow.
@@ -281,61 +301,13 @@ class OverlayView extends View {
 
         // Draw guide lines
         mGuidePaint.clearShadowLayer();
-        mGuidePaint.setStyle(Paint.Style.FILL);
+        mGuidePaint.setStyle(Style.STROKE);
         mGuidePaint.setColor(guideColor);
+        mGuidePaint.setStrokeWidth(mGuideStrokeWidth);
 
-        // top left
-        canvas.drawRect(
-                guideStrokeRect(mGuide.left, mGuide.top, mGuide.left + tickLength, mGuide.top),
-                mGuidePaint);
-        canvas.drawRect(
-                guideStrokeRect(mGuide.left, mGuide.top, mGuide.left, mGuide.top + tickLength),
-                mGuidePaint);
-
-        // top right
-        canvas.drawRect(
-                guideStrokeRect(mGuide.right, mGuide.top, mGuide.right - tickLength, mGuide.top),
-                mGuidePaint);
-        canvas.drawRect(
-                guideStrokeRect(mGuide.right, mGuide.top, mGuide.right, mGuide.top + tickLength),
-                mGuidePaint);
-
-        // bottom left
-        canvas.drawRect(
-                guideStrokeRect(mGuide.left, mGuide.bottom, mGuide.left + tickLength, mGuide.bottom),
-                mGuidePaint);
-        canvas.drawRect(
-                guideStrokeRect(mGuide.left, mGuide.bottom, mGuide.left, mGuide.bottom - tickLength),
-                mGuidePaint);
-
-        // bottom right
-        canvas.drawRect(
-                guideStrokeRect(mGuide.right, mGuide.bottom, mGuide.right - tickLength,
-                        mGuide.bottom), mGuidePaint);
-        canvas.drawRect(
-                guideStrokeRect(mGuide.right, mGuide.bottom, mGuide.right, mGuide.bottom
-                        - tickLength), mGuidePaint);
+        canvas.drawRoundRect(mGuideRoundedRect, mGuideStrokeCornerRadius, mGuideStrokeCornerRadius, mGuidePaint);
 
         if (mDInfo != null) {
-            if (mDInfo.topEdge) {
-                canvas.drawRect(guideStrokeRect(mGuide.left, mGuide.top, mGuide.right, mGuide.top),
-                        mGuidePaint);
-            }
-            if (mDInfo.bottomEdge) {
-                canvas.drawRect(
-                        guideStrokeRect(mGuide.left, mGuide.bottom, mGuide.right, mGuide.bottom),
-                        mGuidePaint);
-            }
-            if (mDInfo.leftEdge) {
-                canvas.drawRect(
-                        guideStrokeRect(mGuide.left, mGuide.top, mGuide.left, mGuide.bottom),
-                        mGuidePaint);
-            }
-            if (mDInfo.rightEdge) {
-                canvas.drawRect(
-                        guideStrokeRect(mGuide.right, mGuide.top, mGuide.right, mGuide.bottom),
-                        mGuidePaint);
-            }
 
             if (mDInfo.numVisibleEdges() < 3) {
                 // Draw guide text

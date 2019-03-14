@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <dimen name="cio_guide_stroke_width">5dp</dimen>
+    <dimen name="cio_guide_stroke_width2">12dp</dimen>
+
+</resources>

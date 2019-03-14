@@ -50,7 +50,12 @@ public final class LocalizedStrings {
     }
 
     public static void setLanguage(Bundle bundle) {
-        i18nManager.setLanguage(bundle.getString(CardIOActivity.EXTRA_LANGUAGE_OR_LOCALE, "EN"));
+        if (bundle != null) {
+            i18nManager.setLanguage(bundle.getString(CardIOActivity.EXTRA_LANGUAGE_OR_LOCALE));
+        }
+        else {
+            i18nManager.setLanguage(null);
+        }
     }
 
     private static final I18nManager<StringKey> i18nManager;
