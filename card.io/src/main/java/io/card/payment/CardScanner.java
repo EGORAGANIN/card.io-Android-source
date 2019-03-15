@@ -189,8 +189,7 @@ public class CardScanner implements Camera.PreviewCallback, Camera.AutoFocusCall
         return (!manualFallbackForError && (usesSupportedProcessorArch()));
     }
 
-    public CardScanner(CardIOScanDetection scanDetection, int currentFrameOrientation, boolean supressScan) {
-        this.mSuppressScan = supressScan;
+    public CardScanner(CardIOScanDetection scanDetection, int currentFrameOrientation) {
         mScanActivityRef = new WeakReference<>(scanDetection);
         mFrameOrientation = currentFrameOrientation;
         nSetup(mSuppressScan, MIN_FOCUS_SCORE, mUnblurDigits);
@@ -627,7 +626,7 @@ public class CardScanner implements Camera.PreviewCallback, Camera.AutoFocusCall
     int getRotationalOffset() {
         final int rotationOffset;
         // Check "normal" screen orientation and adjust accordingly
-        int naturalOrientation = ((WindowManager) mScanActivityRef.get().getActivity().getSystemService(Context.WINDOW_SERVICE))
+        int naturalOrientation = ((WindowManager) mScanActivityRef.get().getContext().getSystemService(Context.WINDOW_SERVICE))
                 .getDefaultDisplay().getRotation();
         if (naturalOrientation == Surface.ROTATION_0) {
             rotationOffset = 0;

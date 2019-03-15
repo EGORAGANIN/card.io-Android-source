@@ -1,11 +1,11 @@
 package io.card.payment;
 
-import android.app.Activity;
+import android.content.Context;
 import android.graphics.Bitmap;
 
 public interface CardIOScanDetection {
 
-    Activity getActivity();
+    Context getContext();
 
     void onFirstFrame();
 

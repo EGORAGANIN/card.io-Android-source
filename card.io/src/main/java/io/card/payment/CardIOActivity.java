@@ -462,7 +462,7 @@ public final class CardIOActivity extends Activity implements CardIOCameraContro
                 mCardScanner = (CardScanner) cons.newInstance(new Object[] { this,
                         mFrameOrientation });
             } else {
-                mCardScanner = new CardScanner(this, mFrameOrientation, false);
+                mCardScanner = new CardScanner(this, mFrameOrientation);
             }
             mCardScanner.prepareScanner();
 
@@ -722,7 +722,7 @@ public final class CardIOActivity extends Activity implements CardIOCameraContro
     // end static
 
     @Override
-    public Activity getActivity() {
+    public Context getContext() {
         return this;
     }
 
@@ -922,8 +922,8 @@ public final class CardIOActivity extends Activity implements CardIOCameraContro
         mOverlay.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT,
                 LayoutParams.MATCH_PARENT));
         if (getIntent() != null) {
-            boolean useCardIOLogo = getIntent().getBooleanExtra(EXTRA_USE_CARDIO_LOGO, false);
-            mOverlay.setUseCardIOLogo(useCardIOLogo);
+//            boolean useCardIOLogo = getIntent().getBooleanExtra(EXTRA_USE_CARDIO_LOGO, false);
+//            mOverlay.setUseCardIOLogo(useCardIOLogo);
 
             int color = getIntent().getIntExtra(EXTRA_GUIDE_COLOR, 0);
 
@@ -936,8 +936,8 @@ public final class CardIOActivity extends Activity implements CardIOCameraContro
                 mOverlay.setGuideColor(Color.GREEN);
             }
 
-            boolean hideCardIOLogo = getIntent().getBooleanExtra(EXTRA_HIDE_CARDIO_LOGO, false);
-            mOverlay.setHideCardIOLogo(hideCardIOLogo);
+//            boolean hideCardIOLogo = getIntent().getBooleanExtra(EXTRA_HIDE_CARDIO_LOGO, false);
+//            mOverlay.setHideCardIOLogo(hideCardIOLogo);
 
             String scanInstructions = getIntent().getStringExtra(EXTRA_SCAN_INSTRUCTIONS);
             if (scanInstructions != null) {

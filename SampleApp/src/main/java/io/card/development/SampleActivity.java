@@ -71,6 +71,10 @@ public class SampleActivity extends AppCompatActivity {
 
         mContainer = (FrameLayout) findViewById(R.id.layout_container);
 
+        if (savedInstanceState != null) {
+            mContainer.setVisibility(View.VISIBLE);
+        }
+
         mManualToggle = (CheckBox) findViewById(R.id.force_manual);
         mEnableExpiryToggle = (CheckBox) findViewById(R.id.gather_expiry);
         mScanExpiryToggle = (CheckBox) findViewById(R.id.scan_expiry);
@@ -111,7 +115,6 @@ public class SampleActivity extends AppCompatActivity {
 
     public void onScan(View pressed) {
         Bundle bundle = new Bundle();
-//        Intent intent = new Intent(this, CardIOActivity.class)
         bundle.putBoolean(CardIOActivity.EXTRA_NO_CAMERA, mManualToggle.isChecked());
         bundle.putBoolean(CardIOActivity.EXTRA_REQUIRE_EXPIRY, mEnableExpiryToggle.isChecked());
         bundle.putBoolean(CardIOActivity.EXTRA_SCAN_EXPIRY, mScanExpiryToggle.isChecked());
@@ -138,7 +141,7 @@ public class SampleActivity extends AppCompatActivity {
         fragment.setArguments(bundle);
 
         mContainer.setVisibility(View.VISIBLE);
-        getSupportFragmentManager().beginTransaction().add(R.id.layout_container, fragment).commit();
+        getSupportFragmentManager().beginTransaction().replace(R.id.layout_container, fragment).addToBackStack("s").commit();
     }
 
     public void onAutotest(View v) {

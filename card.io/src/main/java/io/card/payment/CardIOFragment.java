@@ -13,6 +13,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Rect;
+import android.graphics.drawable.ColorDrawable;
 import android.hardware.SensorManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -98,24 +99,6 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
     public static final String EXTRA_REQUIRE_CARDHOLDER_NAME = "io.card.payment.requireCardholderName";
 
     /**
-     * Boolean extra. Optional. Defaults to <code>false</code>. If set, the card.io logo will be
-     * shown instead of the PayPal logo.
-     */
-    public static final String EXTRA_USE_CARDIO_LOGO = "io.card.payment.useCardIOLogo";
-
-    /**
-     * Parcelable extra containing {@link CreditCard}. The data intent returned to your {@link android.app.Activity}'s
-     * {@link Activity#onActivityResult(int, int, Intent)} will contain this extra if the resultCode is
-     * {@link #RESULT_CARD_INFO}.
-     */
-    public static final String EXTRA_SCAN_RESULT = "io.card.payment.scanResult";
-
-    /**
-     * Boolean extra indicating card was not scanned.
-     */
-    private static final String EXTRA_MANUAL_ENTRY_RESULT = "io.card.payment.manualEntryScanResult";
-
-    /**
      * String extra. Optional. The preferred language for all strings appearing in the user
      * interface. If not set, or if set to null, defaults to the device's current language setting.
      * <br><br>
@@ -158,16 +141,9 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
     public static final String EXTRA_GUIDE_BORDER_THICKNESS = "io.card.payment.borderThickness";
 
     /**
-     * Boolean extra. Optional. If this value is set to <code>true</code> the user will not be prompted to
-     * confirm their card number after processing.
+     * Boolean extra. Optional. Defaults to false. Activated and deactivated fullscreen mode after open and close fragment.
      */
-    public static final String EXTRA_SUPPRESS_CONFIRMATION = "io.card.payment.suppressConfirmation";
-
-    /**
-     * Boolean extra. Optional. Defaults to <code>false</code>. When set to <code>true</code> the card.io logo
-     * will not be shown overlaid on the camera.
-     */
-    public static final String EXTRA_HIDE_CARDIO_LOGO = "io.card.payment.hideLogo";
+    public static final String EXTRA_FULLSCREEN_MODE = "io.card.payment.fullscreenMode";
 
     /**
      * String extra. Optional. Used to display instructions to the user while they are scanning
@@ -176,42 +152,11 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
     public static final String EXTRA_SCAN_INSTRUCTIONS = "io.card.payment.scanInstructions";
 
     /**
-     * String extra. If {@link #EXTRA_RETURN_CARD_IMAGE} is set to <code>true</code>, the data intent passed to your
-     * {@link android.app.Activity} will have the card image stored as a JPEG formatted byte array in this extra.
-     */
-    public static final String EXTRA_CAPTURED_CARD_IMAGE = "io.card.payment.capturedCardImage";
-
-    /**
-     * Boolean extra. Optional. If this value is set to <code>true</code> the card image will be passed as an
-     * extra in the data intent that is returned to your {@link android.app.Activity} using the
-     * {@link #EXTRA_CAPTURED_CARD_IMAGE} key.
-     */
-    public static final String EXTRA_RETURN_CARD_IMAGE = "io.card.payment.returnCardImage";
-
-    /**
      * Integer extra. Optional. If this value is provided the view will be inflated and will overlay
      * the camera during the scan process. The integer value must be the id of a valid layout
      * resource.
      */
     public static final String EXTRA_SCAN_OVERLAY_LAYOUT_ID = "io.card.payment.scanOverlayLayoutId";
-
-    /**
-     * Boolean extra. Optional. Use the PayPal icon in the ActionBar.
-     */
-    public static final String EXTRA_USE_PAYPAL_ACTIONBAR_ICON =
-            "io.card.payment.intentSenderIsPayPal";
-
-    /**
-     * Boolean extra. Optional. If this value is set to <code>true</code>, and the application has a theme,
-     * the theme for the card.io {@link android.app.Activity}s will be set to the theme of the application.
-     */
-    public static final String EXTRA_KEEP_APPLICATION_THEME = "io.card.payment.keepApplicationTheme";
-
-
-    /**
-     * Boolean extra. Used for testing only.
-     */
-    static final String PRIVATE_EXTRA_CAMERA_BYPASS_TEST_MODE = "io.card.payment.cameraBypassTestMode";
 
     private static int lastResult = 0xca8d10; // arbitrary. chosen to be well above
     // Activity.RESULT_FIRST_USER.
@@ -255,22 +200,12 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
     private static final int ORIENTATION_LANDSCAPE_LEFT = 4;
 
     private static final int FRAME_ID = 1;
-    private static final int UIBAR_ID = 2;
-    private static final int KEY_BTN_ID = 3;
-
-    private static final String BUNDLE_WAITING_FOR_PERMISSION = "io.card.payment.waitingForPermission";
-
-    private static final float UIBAR_VERTICAL_MARGIN_DP = 15.0f;
 
     private static final long[] VIBRATE_PATTERN = {0, 70, 10, 40};
 
     private static final int TOAST_OFFSET_Y = -75;
 
-    private static final int DATA_ENTRY_REQUEST_ID = 10;
-    private static final int PERMISSION_REQUEST_ID = 11;
-
     private OverlayView mOverlay;
-    private OrientationEventListener orientationListener;
 
     // TODO: the preview is accessed by the scanner. Not the best practice.
     Preview mPreview;
@@ -279,13 +214,9 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
     private Rect mGuideFrame;
     private int mLastDegrees;
     private int mFrameOrientation;
-    private boolean suppressManualEntry;
     private LinearLayout customOverlayLayout;
-    private boolean waitingForPermission;
 
-    private RelativeLayout mUIBar;
     private FrameLayout mMainLayout;
-    private boolean useApplicationTheme;
 
     private CardScanner mCardScanner;
 
@@ -314,28 +245,19 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
 
         LocalizedStrings.setLanguage(clientData);
 
-        if (savedInstanceState != null) {
-            waitingForPermission = savedInstanceState.getBoolean(BUNDLE_WAITING_FOR_PERMISSION);
-        }
-
         if (!CardScanner.processorSupported()) {
             manualEntryFallbackOrForced = true;
         }
         else {
             try {
-                // If permission CAMERA denied close fragment
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-                    if (!waitingForPermission) {
-                        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) ==
-                                PackageManager.PERMISSION_DENIED) {
-                            String[] permissions = {Manifest.permission.CAMERA};
-                            waitingForPermission = true;
-                            requestPermissions(permissions, PERMISSION_REQUEST_ID);
-                        }
-                        else {
-                            checkCamera();
-                            android23AndAboveHandleCamera();
-                        }
+                    if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) ==
+                            PackageManager.PERMISSION_GRANTED) {
+                        checkCamera();
+                        android23AndAboveHandleCamera();
+                    }
+                    else {
+                        manualEntryFallbackOrForced = true;
                     }
                 }
                 else {
@@ -357,7 +279,7 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
 
     private void android23AndAboveHandleCamera() {
         if (manualEntryFallbackOrForced) {
-            finishIfSuppressManualEntry();
+            scanResult(mDetectedCard);
         }
         else {
             // Guaranteed to be called in API 23+
@@ -368,19 +290,13 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
 
     private void android22AndBelowHandleCamera() {
         if (manualEntryFallbackOrForced) {
-            finishIfSuppressManualEntry();
+            scanResult(mDetectedCard);
         }
         else {
             // guaranteed to be called in onCreate on API < 22, so it's ok that we're removing the window feature here
 //            requestWindowFeature(Window.FEATURE_NO_TITLE);
 
             showCameraScannerOverlay();
-        }
-    }
-
-    private void finishIfSuppressManualEntry() {
-        if (suppressManualEntry) {
-//            setResultAndFinish(RESULT_SCAN_NOT_AVAILABLE, null);
         }
     }
 
@@ -424,33 +340,22 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
 
             mFrameOrientation = ORIENTATION_PORTRAIT;
 
-            if (getArguments().getBoolean(PRIVATE_EXTRA_CAMERA_BYPASS_TEST_MODE, false)) {
-                if (!getContext().getPackageName().contentEquals("io.card.development")) {
-                    throw new IllegalStateException("Illegal access of private extra");
-                }
-                // use reflection here so that the tester can be safely stripped for release
-                // builds.
-                Class<?> testScannerClass = Class.forName("io.card.payment.CardScannerTester");
-                Constructor<?> cons = testScannerClass.getConstructor(this.getClass(),
-                        Integer.TYPE);
-                mCardScanner = (CardScanner) cons.newInstance(new Object[]{this,
-                        mFrameOrientation});
+            mCardScanner = new CardScanner(this, mFrameOrientation);
+
+            final Bundle arguments = getArguments();
+            if (arguments != null) {
+                boolean mScanExpiry = arguments.getBoolean(CardIOFragment.EXTRA_REQUIRE_EXPIRY, false)
+                        && arguments.getBoolean(CardIOFragment.EXTRA_SCAN_EXPIRY, true);
+                int mUnblurDigits = arguments.getInt(CardIOFragment.EXTRA_UNBLUR_DIGITS, -1);
+
+                mCardScanner.setScanExpiry(mScanExpiry);
+                mCardScanner.setUnblurDigits(mUnblurDigits);
             }
-            else {
-                mCardScanner = new CardScanner(this, mFrameOrientation, false);
-            }
+
             mCardScanner.prepareScanner();
 
             setPreviewLayout();
 
-            orientationListener = new OrientationEventListener(getContext(),
-                    SensorManager.SENSOR_DELAY_UI)
-            {
-                @Override
-                public void onOrientationChanged(int orientation) {
-                    doOrientationChange(orientation);
-                }
-            };
         }
         catch (Exception e) {
             handleGeneralExceptionError(e);
@@ -468,51 +373,6 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
         manualEntryFallbackOrForced = true;
     }
 
-    private void doOrientationChange(int orientation) {
-        if (orientation < 0 || mCardScanner == null) {
-            return;
-        }
-
-        orientation += mCardScanner.getRotationalOffset();
-
-        // Check if we have gone too far forward with
-        // rotation adjustment, keep the result between 0-360
-        if (orientation > 360) {
-            orientation -= 360;
-        }
-        int degrees;
-
-        degrees = -1;
-
-        if (orientation < DEGREE_DELTA || orientation > 360 - DEGREE_DELTA) {
-            degrees = 0;
-            mFrameOrientation = ORIENTATION_PORTRAIT;
-        }
-        else if (orientation > 90 - DEGREE_DELTA && orientation < 90 + DEGREE_DELTA) {
-            degrees = 90;
-            mFrameOrientation = ORIENTATION_LANDSCAPE_LEFT;
-        }
-        else if (orientation > 180 - DEGREE_DELTA && orientation < 180 + DEGREE_DELTA) {
-            degrees = 180;
-            mFrameOrientation = ORIENTATION_PORTRAIT_UPSIDE_DOWN;
-        }
-        else if (orientation > 270 - DEGREE_DELTA && orientation < 270 + DEGREE_DELTA) {
-            degrees = 270;
-            mFrameOrientation = ORIENTATION_LANDSCAPE_RIGHT;
-        }
-        if (degrees >= 0 && degrees != mLastDegrees) {
-//            mCardScanner.setDeviceOrientation(mFrameOrientation);
-//            setDeviceDegrees(degrees);
-//            if (degrees == 90) {
-//                rotateCustomOverlay(270);
-//            } else if (degrees == 270) {
-//                rotateCustomOverlay(90);
-//            } else {
-//                rotateCustomOverlay(degrees);
-//            }
-        }
-    }
-
     /**
      * Suspend/resume camera preview as part of the {@link android.app.Activity} life cycle (side note: we reuse the
      * same buffer for preview callbacks to greatly reduce the amount of required GC).
@@ -521,56 +381,32 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
     public void onResume() {
         super.onResume();
 
-        if (!waitingForPermission) {
-            if (manualEntryFallbackOrForced) {
-                // TODO Think
-                if (suppressManualEntry) {
-                    finishIfSuppressManualEntry();
-                    return;
-                }
-                else {
-//                    nextActivity();
-                    return;
-                }
-            }
+        if (manualEntryFallbackOrForced) {
+            scanResult(mDetectedCard);
+            return;
+        }
 
-            Util.logNativeMemoryStats();
+        Util.logNativeMemoryStats();
 
 //            getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 //            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 //            ActivityHelper.setFlagSecure(this);
 
-//            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-            orientationListener.enable();
-
-            if (!restartPreview()) {
-                StringKey error = StringKey.ERROR_CAMERA_UNEXPECTED_FAIL;
-                showErrorMessage(LocalizedStrings.getString(error));
-//                nextActivity();
-            }
-            else {
-                // Turn flash off
-                setFlashOn(false);
-            }
-
-            doOrientationChange(mLastDegrees);
+        if (!restartPreview()) {
+            StringKey error = StringKey.ERROR_CAMERA_UNEXPECTED_FAIL;
+            showErrorMessage(LocalizedStrings.getString(error));
+            scanResult(mDetectedCard);
         }
-    }
-
-    @Override
-    public void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-
-        outState.putBoolean(BUNDLE_WAITING_FOR_PERMISSION, waitingForPermission);
+        else {
+            // Turn flash off
+            setFlashOn(false);
+        }
     }
 
     @Override
     public void onPause() {
         super.onPause();
 
-        if (orientationListener != null) {
-            orientationListener.disable();
-        }
         setFlashOn(false);
 
         if (mCardScanner != null) {
@@ -578,13 +414,14 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
         }
     }
 
+    @Override public void onDestroyView() {
+        super.onDestroyView();
+    }
+
     @Override
     public void onDestroy() {
         mOverlay = null;
 
-        if (orientationListener != null) {
-            orientationListener.disable();
-        }
         setFlashOn(false);
 
         if (mCardScanner != null) {
@@ -594,59 +431,6 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
 
         super.onDestroy();
     }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String permissions[],
-            int[] grantResults) {
-        if (requestCode == PERMISSION_REQUEST_ID) {
-            waitingForPermission = false;
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                showCameraScannerOverlay();
-            }
-            else {
-                // show manual entry - handled in onResume()
-                manualEntryFallbackOrForced = true;
-            }
-        }
-    }
-
-    @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-
-        if (requestCode == DATA_ENTRY_REQUEST_ID) {
-            if (resultCode == RESULT_CARD_INFO || resultCode == RESULT_ENTRY_CANCELED
-                    || manualEntryFallbackOrForced) {
-//                setResultAndFinish(resultCode, data);
-            }
-            else {
-                if (mUIBar != null) {
-                    mUIBar.setVisibility(View.VISIBLE);
-                }
-            }
-        }
-    }
-
-    /**
-     * This {@link android.app.Activity} overrides back button handling to handle back presses properly given the
-     * various states this {@link android.app.Activity} can be in.
-     * <br><br>
-     * This method is called by Android, never directly by application code.
-     */
-//    @Override
-//    public void onBackPressed() {
-//        if (!manualEntryFallbackOrForced && mOverlay.isAnimating()) {
-//            try {
-//                restartPreview();
-//            }
-//            catch (RuntimeException re) {
-//                Log.w(TAG, "*** could not return to preview: " + re);
-//            }
-//        }
-//        else if (mCardScanner != null) {
-//            super.onBackPressed();
-//        }
-//    }
 
     // ------------------------------------------------------------------------
     // STATIC METHODS
@@ -690,23 +474,6 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
         return new Date();
     }
 
-    /**
-     * Utility method for decoding card bitmap
-     *
-     * @param intent - intent received in {@link Activity#onActivityResult(int, int, Intent)}
-     * @return decoded bitmap or null
-     */
-    public static Bitmap getCapturedCardImage(Intent intent) {
-        if (intent == null || !intent.hasExtra(EXTRA_CAPTURED_CARD_IMAGE)) {
-            return null;
-        }
-
-        byte[] imageData = intent.getByteArrayExtra(EXTRA_CAPTURED_CARD_IMAGE);
-        ByteArrayInputStream inStream = new ByteArrayInputStream(imageData);
-        Bitmap result = BitmapFactory.decodeStream(inStream, null, new BitmapFactory.Options());
-        return result;
-    }
-
     // end static
 
     @Override
@@ -740,7 +507,6 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
         }
 
         mCardScanner.pauseScanning();
-        mUIBar.setVisibility(View.INVISIBLE);
 
         if (dInfo.predicted()) {
             mDetectedCard = dInfo.creditCard();
@@ -763,63 +529,16 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
                 detectedBitmap.getHeight(), m, false);
         mOverlay.setBitmap(scaledCard);
 
-//        nextActivity();
+        scanResult(mDetectedCard);
     }
 
-//    private void nextActivity() {
-//        final Intent origIntent = getIntent();
-//        if (origIntent != null && origIntent.getBooleanExtra(EXTRA_SUPPRESS_CONFIRMATION, false)) {
-//            Intent dataIntent = new Intent(io.card.payment.CardIOActivity.this, DataEntryActivity.class);
-//            if (mDetectedCard != null) {
-//                dataIntent.putExtra(EXTRA_SCAN_RESULT, mDetectedCard);
-//                mDetectedCard = null;
-//            }
-//
-//            Util.writeCapturedCardImageIfNecessary(origIntent, dataIntent, mOverlay);
-//
-//            setResultAndFinish(RESULT_CONFIRMATION_SUPPRESSED, dataIntent);
-//        }
-//        else {
-//            new Handler().post(new Runnable()
-//            {
-//                @Override
-//                public void run() {
-//                    getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-//                    getWindow().addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
-//
-//                    Intent dataIntent = new Intent(io.card.payment.CardIOActivity.this, DataEntryActivity.class);
-//                    Util.writeCapturedCardImageIfNecessary(origIntent, dataIntent, mOverlay);
-//
-//                    if (mOverlay != null) {
-//                        mOverlay.markupCard();
-//                        if (markedCardImage != null && !markedCardImage.isRecycled()) {
-//                            markedCardImage.recycle();
-//                        }
-//                        markedCardImage = mOverlay.getCardImage();
-//                    }
-//                    if (mDetectedCard != null) {
-//                        dataIntent.putExtra(EXTRA_SCAN_RESULT, mDetectedCard);
-//                        mDetectedCard = null;
-//                    }
-//                    else {
-                        /*
-                         add extra to indicate manual entry.
-                         This can obviously be indicated by the presence of EXTRA_SCAN_RESULT.
-                         The purpose of this is to ensure there's always an extra in the DataEntryActivity.
-                         If there are no extras received by DataEntryActivity, then an error has occurred.
-                         */
-//                        dataIntent.putExtra(EXTRA_MANUAL_ENTRY_RESULT, true);
-//                    }
-//
-//                    dataIntent.putExtras(getIntent()); // passing on any received params (such as isCvv
-//                    // and language)
-//                    dataIntent.addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
-//                            | Intent.FLAG_ACTIVITY_NO_HISTORY | Intent.FLAG_ACTIVITY_NO_ANIMATION);
-//                    startActivityForResult(dataIntent, DATA_ENTRY_REQUEST_ID);
-//                }
-//            });
-//        }
-//    }
+    /**
+     * .
+     */
+    protected void scanResult(@Nullable CreditCard card) {
+        markedCardImage = null;
+//        Think about off fullscreen flags
+    }
 
 
     /**
@@ -835,9 +554,6 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
         mDetectedCard = null;
         assert mPreview != null;
         boolean success = mCardScanner.resumeScanning(mPreview.getSurfaceHolder());
-        if (success) {
-            mUIBar.setVisibility(View.VISIBLE);
-        }
 
         return success;
     }
@@ -900,8 +616,6 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
         mOverlay.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT,
                 LayoutParams.MATCH_PARENT));
         if (getArguments() != null) {
-            boolean useCardIOLogo = getArguments().getBoolean(EXTRA_USE_CARDIO_LOGO, false);
-            mOverlay.setUseCardIOLogo(useCardIOLogo);
 
             int color = getArguments().getInt(EXTRA_GUIDE_COLOR, 0);
 
@@ -915,8 +629,8 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
                 mOverlay.setGuideColor(Color.GREEN);
             }
 
-            boolean hideCardIOLogo = getArguments().getBoolean(EXTRA_HIDE_CARDIO_LOGO, false);
-            mOverlay.setHideCardIOLogo(hideCardIOLogo);
+            float borderTickness = getArguments().getFloat(EXTRA_GUIDE_BORDER_THICKNESS, 0.0f);
+            float cornerRadius = getArguments().getFloat(EXTRA_GUIDE_CORNER_RADIUS, 0.0f);
 
             String scanInstructions = getArguments().getString(EXTRA_SCAN_INSTRUCTIONS);
             if (scanInstructions != null) {
@@ -929,57 +643,8 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
         RelativeLayout.LayoutParams previewParams = new RelativeLayout.LayoutParams(
                 LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
         previewParams.addRule(RelativeLayout.ALIGN_PARENT_TOP);
-        previewParams.addRule(RelativeLayout.ABOVE, UIBAR_ID);
-        mMainLayout.addView(previewFrame, previewParams);
-
-        mUIBar = new RelativeLayout(getContext());
-        mUIBar.setGravity(Gravity.BOTTOM);
-        RelativeLayout.LayoutParams mUIBarParams = new RelativeLayout.LayoutParams(
-                LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT);
         previewParams.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-        mUIBar.setLayoutParams(mUIBarParams);
-
-        mUIBar.setId(UIBAR_ID);
-
-        mUIBar.setGravity(Gravity.BOTTOM | Gravity.RIGHT);
-
-        // Show the keyboard button
-//        if (!suppressManualEntry) {
-//            Button keyboardBtn = new Button(this);
-//            keyboardBtn.setId(KEY_BTN_ID);
-//            keyboardBtn.setText(LocalizedStrings.getString(StringKey.KEYBOARD));
-//            keyboardBtn.setOnClickListener(new Button.OnClickListener()
-//            {
-//                @Override
-//                public void onClick(View v) {
-//                    nextActivity();
-//                }
-//            });
-//            mUIBar.addView(keyboardBtn);
-//            ViewUtil.styleAsButton(keyboardBtn, false, this, useApplicationTheme);
-//            if (!useApplicationTheme) {
-//                keyboardBtn.setTextSize(Appearance.TEXT_SIZE_SMALL_BUTTON);
-//            }
-//            keyboardBtn.setMinimumHeight(ViewUtil.typedDimensionValueToPixelsInt(
-//                    Appearance.SMALL_BUTTON_HEIGHT, this));
-//            RelativeLayout.LayoutParams keyboardParams = (RelativeLayout.LayoutParams) keyboardBtn
-//                    .getLayoutParams();
-//            keyboardParams.width = LayoutParams.WRAP_CONTENT;
-//            keyboardParams.height = LayoutParams.WRAP_CONTENT;
-//            keyboardParams.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-//            ViewUtil.setPadding(keyboardBtn, Appearance.CONTAINER_MARGIN_HORIZONTAL, null,
-//                    Appearance.CONTAINER_MARGIN_HORIZONTAL, null);
-//            ViewUtil.setMargins(keyboardBtn, Appearance.BASE_SPACING, Appearance.BASE_SPACING,
-//                    Appearance.BASE_SPACING, Appearance.BASE_SPACING);
-//        }
-        // Device has a flash, show the flash button
-        RelativeLayout.LayoutParams uiParams = new RelativeLayout.LayoutParams(
-                LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT);
-        uiParams.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-        final float scale = getResources().getDisplayMetrics().density;
-        int uiBarMarginPx = (int) (UIBAR_VERTICAL_MARGIN_DP * scale + 0.5f);
-        uiParams.setMargins(0, uiBarMarginPx, 0, uiBarMarginPx);
-        mMainLayout.addView(mUIBar, uiParams);
+        mMainLayout.addView(previewFrame, previewParams);
 
         if (getArguments() != null) {
             if (customOverlayLayout != null) {
@@ -993,42 +658,12 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
                 customOverlayLayout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT,
                         LayoutParams.MATCH_PARENT));
 
-                LayoutInflater inflater = this.getActivity().getLayoutInflater();
+                LayoutInflater inflater = LayoutInflater.from(getContext());
 
                 inflater.inflate(resourceId, customOverlayLayout);
                 mMainLayout.addView(customOverlayLayout);
             }
         }
-
-//        this.setContentView(mMainLayout);
-    }
-
-    private void rotateCustomOverlay(float degrees) {
-        if (customOverlayLayout != null) {
-            float pivotX = customOverlayLayout.getWidth() / 2;
-            float pivotY = customOverlayLayout.getHeight() / 2;
-
-            Animation an = new RotateAnimation(0, degrees, pivotX, pivotY);
-            an.setDuration(0);
-            an.setRepeatCount(0);
-            an.setFillAfter(true);
-
-            customOverlayLayout.setAnimation(an);
-        }
-    }
-//
-//    private void setResultAndFinish(final int resultCode, final Intent data) {
-//        setResult(resultCode, data);
-//        markedCardImage = null;
-//        finish();
-//    }
-
-    // for torch test
-    public Rect getTorchRect() {
-        if (mOverlay == null) {
-            return null;
-        }
-        return mOverlay.getTorchRect();
     }
 }
 

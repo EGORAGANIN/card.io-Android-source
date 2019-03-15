@@ -84,9 +84,6 @@ class OverlayView extends View {
     private static final int TORCH_WIDTH = 70;
     private static final int TORCH_HEIGHT = 50;
 
-    private static final int LOGO_MAX_WIDTH = 100;
-    private static final int LOGO_MAX_HEIGHT = TORCH_HEIGHT;
-
     private static final int BUTTON_TOUCH_TOLERANCE = 20;
 
     private final WeakReference<CardIOCameraControl> mScanActivityRef;
@@ -99,7 +96,6 @@ class OverlayView extends View {
     private int mState;
     private int guideColor;
 
-    private boolean hideCardIOLogo;
     private String scanInstructions;
 
     // Keep paint objects around for high frequency methods to avoid re-allocating them.
@@ -109,8 +105,7 @@ class OverlayView extends View {
     private Path mLockedBackgroundPath;
     private Rect mCameraPreviewRect;
     private final Torch mTorch;
-    private final Logo mLogo;
-    private Rect mTorchRect, mLogoRect;
+    private Rect mTorchRect;
     private final boolean mShowTorch;
     private int mRotationFlip;
     private float mScale = 1;
@@ -130,7 +125,6 @@ class OverlayView extends View {
         mScale = getResources().getDisplayMetrics().density / 1.5f;
 
         mTorch = new Torch(TORCH_WIDTH * mScale, TORCH_HEIGHT * mScale);
-        mLogo = new Logo(context);
 
         mGuidePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
@@ -171,14 +165,6 @@ class OverlayView extends View {
         mGuideStrokeWidth = guideStrokeWidth;
     }
 
-    public boolean getHideCardIOLogo() {
-        return hideCardIOLogo;
-    }
-
-    public void setHideCardIOLogo(boolean hide) {
-        hideCardIOLogo = hide;
-    }
-
     public String getScanInstructions() {
         return scanInstructions;
     }
@@ -210,12 +196,6 @@ class OverlayView extends View {
             // mTorchRect used only for touch lookup, not layout
             mTorchRect = Util.rectGivenCenter(torchPoint, (int) (TORCH_WIDTH * mScale),
                     (int) (TORCH_HEIGHT * mScale));
-
-            // mLogoRect used only for touch lookup, not layout
-            Point logoPoint = new Point(mCameraPreviewRect.right - topEdgeUIOffset.x,
-                    mCameraPreviewRect.top + topEdgeUIOffset.y);
-            mLogoRect = Util.rectGivenCenter(logoPoint, (int) (LOGO_MAX_WIDTH * mScale),
-                    (int) (LOGO_MAX_HEIGHT * mScale));
 
             int[] gradientColors = { Color.WHITE, Color.BLACK };
             Orientation gradientOrientation = GRADIENT_ORIENTATIONS[(mRotation / 90) % 4];
@@ -336,15 +316,6 @@ class OverlayView extends View {
         }
         canvas.restore();
 
-        // draw logo
-        if (!hideCardIOLogo) {
-            canvas.save();
-            canvas.translate(mLogoRect.exactCenterX(), mLogoRect.exactCenterY());
-            canvas.rotate(mRotationFlip * mRotation);
-            mLogo.draw(canvas, LOGO_MAX_WIDTH * mScale, LOGO_MAX_HEIGHT * mScale);
-            canvas.restore();
-        }
-
         if (mShowTorch) {
             // draw torch
             canvas.save();
@@ -453,10 +424,6 @@ class OverlayView extends View {
     public void setTorchOn(boolean b) {
         mTorch.setOn(b);
         invalidate();
-    }
-
-    public void setUseCardIOLogo(boolean useCardIOLogo) {
-        mLogo.loadLogo(useCardIOLogo);
     }
 
     // for test
