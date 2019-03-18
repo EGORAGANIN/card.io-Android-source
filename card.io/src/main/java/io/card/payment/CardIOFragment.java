@@ -167,7 +167,7 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
     private static final int ORIENTATION_LANDSCAPE_RIGHT = 3;
     private static final int ORIENTATION_LANDSCAPE_LEFT = 4;
 
-    private static final int FRAME_ID = 1;
+    public static final int FRAME_ID = 1;
 
     private static final long[] VIBRATE_PATTERN = {0, 70, 10, 40};
 
@@ -592,7 +592,7 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
         mMainLayout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT,
                 LayoutParams.MATCH_PARENT));
 
-        FrameLayout previewFrame = new FrameLayout(getContext());
+        RelativeLayout previewFrame = new RelativeLayout(getContext());
         previewFrame.setId(FRAME_ID);
 
         mPreview = new Preview(getContext(), null, mCardScanner.mPreviewWidth, mCardScanner.mPreviewHeight);
