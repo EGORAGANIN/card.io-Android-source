@@ -5,19 +5,13 @@ import android.app.ActionBar;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Rect;
-import android.graphics.drawable.ColorDrawable;
-import android.hardware.SensorManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.Vibrator;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -26,30 +20,20 @@ import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
-import android.view.OrientationEventListener;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
-import android.view.Window;
 import android.view.WindowManager;
-import android.view.animation.Animation;
-import android.view.animation.RotateAnimation;
-import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 
-import java.io.ByteArrayInputStream;
-import java.lang.reflect.Constructor;
 import java.util.Date;
 
 import io.card.payment.i18n.LocalizedStrings;
 import io.card.payment.i18n.StringKey;
-import io.card.payment.ui.ActivityHelper;
-import io.card.payment.ui.Appearance;
-import io.card.payment.ui.ViewUtil;
 
 public class CardIOFragment extends Fragment implements CardIOScanDetection, CardIOCameraControl
 {
@@ -129,13 +113,13 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
     public static final String EXTRA_GUIDE_COLOR = "io.card.payment.guideColor";
 
     /**
-     * Float extra. Optional. Defaults to 0.0f. Changes the corner radius of the guide overlay on the
+     * Float extra. Optional. Defaults to 12dp. Changes the corner radius of the guide overlay on the
      * camera.
      */
     public static final String EXTRA_GUIDE_CORNER_RADIUS = "io.card.payment.cornerRadius";
 
     /**
-     * Float extra. Optional. Defaults to 0.0f. Changes the corner radius of the guide overlay on the
+     * Float extra. Optional. Defaults to 5dp. Changes the corner radius of the guide overlay on the
      * camera.
      */
     public static final String EXTRA_GUIDE_BORDER_THICKNESS = "io.card.payment.borderThickness";
@@ -160,35 +144,17 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
 
     private static int lastResult = 0xca8d10; // arbitrary. chosen to be well above
     // Activity.RESULT_FIRST_USER.
-    /**
-     * result code supplied to {@link Activity#onActivityResult(int, int, Intent)} when a scan request completes.
-     */
-    public static final int RESULT_CARD_INFO = lastResult++;
+
+    public static final int RESULT_CARD_DETECTED = lastResult++;
 
     /**
      * result code supplied to {@link Activity#onActivityResult(int, int, Intent)} when the user presses the cancel
      * button.
      */
-    public static final int RESULT_ENTRY_CANCELED = lastResult++;
+    public static final int RESULT_SCAN_CANCELED = lastResult++;
 
-    /**
-     * result code indicating that scan is not available. Only returned when
-     * {@link #EXTRA_SUPPRESS_MANUAL_ENTRY} is set and scanning is not available.
-     * <br><br>
-     * This error can be avoided in normal situations by checking
-     * {@link #canReadCardWithCamera()}.
-     */
+
     public static final int RESULT_SCAN_NOT_AVAILABLE = lastResult++;
-
-    /**
-     * result code indicating that we only captured the card image.
-     */
-    public static final int RESULT_SCAN_SUPPRESSED = lastResult++;
-
-    /**
-     * result code indicating that confirmation was suppressed.
-     */
-    public static final int RESULT_CONFIRMATION_SUPPRESSED = lastResult++;
 
     private static final String TAG = CardIOFragment.class.getSimpleName();
 
@@ -279,7 +245,7 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
 
     private void android23AndAboveHandleCamera() {
         if (manualEntryFallbackOrForced) {
-            scanResult(mDetectedCard);
+            scanResult(RESULT_SCAN_NOT_AVAILABLE, mDetectedCard);
         }
         else {
             // Guaranteed to be called in API 23+
@@ -290,7 +256,7 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
 
     private void android22AndBelowHandleCamera() {
         if (manualEntryFallbackOrForced) {
-            scanResult(mDetectedCard);
+            scanResult(RESULT_SCAN_NOT_AVAILABLE, mDetectedCard);
         }
         else {
             // guaranteed to be called in onCreate on API < 22, so it's ok that we're removing the window feature here
@@ -322,18 +288,22 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
     }
 
     private void showCameraScannerOverlay() {
-//        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-//            View decorView = getWindow().getDecorView();
-//            // Hide the status bar.
-//            int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
-//            decorView.setSystemUiVisibility(uiOptions);
-//            // Remember that you should never show the action bar if the
-//            // status bar is hidden, so hide that too if necessary.
-//            ActionBar actionBar = getActionBar();
-//            if (null != actionBar) {
-//                actionBar.hide();
-//            }
-//        }
+        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN && isFullScreenMode()) {
+            final Activity attachedActivity = getActivity();
+
+            if (attachedActivity != null) {
+                View decorView = attachedActivity.getWindow().getDecorView();
+                // Hide the status bar.
+                int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
+                decorView.setSystemUiVisibility(uiOptions);
+                // Remember that you should never show the action bar if the
+                // status bar is hidden, so hide that too if necessary.
+                ActionBar actionBar = getActivity().getActionBar();
+                if (null != actionBar) {
+                    actionBar.hide();
+                }
+            }
+        }
 
         try {
             mGuideFrame = new Rect();
@@ -382,20 +352,24 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
         super.onResume();
 
         if (manualEntryFallbackOrForced) {
-            scanResult(mDetectedCard);
+            scanResult(RESULT_SCAN_NOT_AVAILABLE, mDetectedCard);
             return;
         }
 
         Util.logNativeMemoryStats();
 
-//            getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-//            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-//            ActivityHelper.setFlagSecure(this);
+        if (isFullScreenMode()) {
+            final Activity attachedActivity = getActivity();
+            if (attachedActivity != null) {
+                attachedActivity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+                attachedActivity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            }
+        }
 
         if (!restartPreview()) {
             StringKey error = StringKey.ERROR_CAMERA_UNEXPECTED_FAIL;
             showErrorMessage(LocalizedStrings.getString(error));
-            scanResult(mDetectedCard);
+            scanResult(RESULT_SCAN_NOT_AVAILABLE, mDetectedCard);
         }
         else {
             // Turn flash off
@@ -529,17 +503,15 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
                 detectedBitmap.getHeight(), m, false);
         mOverlay.setBitmap(scaledCard);
 
-        scanResult(mDetectedCard);
+        scanResult(RESULT_CARD_DETECTED, mDetectedCard);
     }
 
     /**
-     * .
+     * Result callback.
      */
-    protected void scanResult(@Nullable CreditCard card) {
+    protected void scanResult(int resultCode, @Nullable CreditCard card) {
         markedCardImage = null;
-//        Think about off fullscreen flags
     }
-
 
     /**
      * Show an error message using toast.
@@ -629,8 +601,15 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
                 mOverlay.setGuideColor(Color.GREEN);
             }
 
-            float borderTickness = getArguments().getFloat(EXTRA_GUIDE_BORDER_THICKNESS, 0.0f);
-            float cornerRadius = getArguments().getFloat(EXTRA_GUIDE_CORNER_RADIUS, 0.0f);
+            float defaultBorderThickness = getResources().getDimension(R.dimen.cio_guide_stroke_width);
+            float borderThickness = getArguments().getFloat(EXTRA_GUIDE_BORDER_THICKNESS, defaultBorderThickness);
+
+            mOverlay.setGuideStrokeWidth(borderThickness);
+
+            float defaultCornerRadius = getResources().getDimension(R.dimen.cio_guide_stroke_corner_radius);
+            float cornerRadius = getArguments().getFloat(EXTRA_GUIDE_CORNER_RADIUS, defaultCornerRadius);
+
+            mOverlay.setGuideStrokeCornerRadius(cornerRadius);
 
             String scanInstructions = getArguments().getString(EXTRA_SCAN_INSTRUCTIONS);
             if (scanInstructions != null) {
@@ -664,6 +643,18 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
                 mMainLayout.addView(customOverlayLayout);
             }
         }
+    }
+
+    private boolean isFullScreenMode() {
+        final Bundle arguments = getArguments();
+
+        boolean result = false;
+
+        if (arguments != null) {
+            result = arguments.getBoolean(EXTRA_FULLSCREEN_MODE, false);
+        }
+
+        return result;
     }
 }
 

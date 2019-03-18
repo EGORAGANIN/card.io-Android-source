@@ -131,6 +131,7 @@ public class SampleActivity extends AppCompatActivity {
         bundle.putBoolean(CardIOActivity.EXTRA_SUPPRESS_CONFIRMATION, mSuppressConfirmationToggle.isChecked());
         bundle.putBoolean(CardIOActivity.EXTRA_SUPPRESS_SCAN, mSuppressScanToggle.isChecked());
         bundle.putBoolean(CardIOActivity.EXTRA_RETURN_CARD_IMAGE, true);
+        bundle.putBoolean(CardIOFragment.EXTRA_FULLSCREEN_MODE, true);
 
         try {
             int unblurDigits = Integer.parseInt(mUnblurEdit.getText().toString());

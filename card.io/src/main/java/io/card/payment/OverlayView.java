@@ -134,11 +134,6 @@ class OverlayView extends View {
         mLockedBackgroundPaint.setColor(0xbb000000); // 75% black
 
         scanInstructions = LocalizedStrings.getString(StringKey.SCAN_GUIDE);
-
-        mGuideStrokeWidth = context.getResources().getDimension(R.dimen.cio_guide_stroke_width);
-
-//        Temp
-        mGuideStrokeCornerRadius = context.getResources().getDimension(R.dimen.cio_guide_stroke_width2);
     }
 
     public int getGuideColor() {

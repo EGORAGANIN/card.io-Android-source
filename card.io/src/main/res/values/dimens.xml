@@ -2,6 +2,6 @@
 <resources>
 
     <dimen name="cio_guide_stroke_width">5dp</dimen>
-    <dimen name="cio_guide_stroke_width2">12dp</dimen>
+    <dimen name="cio_guide_stroke_corner_radius">12dp</dimen>
 
 </resources>
