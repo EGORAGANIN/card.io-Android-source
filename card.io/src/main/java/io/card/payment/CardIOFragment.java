@@ -12,6 +12,8 @@ import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.StrictMode;
+import android.os.StrictMode.ThreadPolicy;
 import android.os.Vibrator;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -211,7 +213,21 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
 
         LocalizedStrings.setLanguage(clientData);
 
-        if (!CardScanner.processorSupported()) {
+        boolean processorSupported = false;
+
+        ThreadPolicy currentThreadPolicy = StrictMode.getThreadPolicy();
+        try {
+            ThreadPolicy threadPolicyDiskReads = new StrictMode.ThreadPolicy.Builder()
+                    .permitDiskReads()
+                    .build();
+            StrictMode.setThreadPolicy(threadPolicyDiskReads);
+            processorSupported = CardScanner.processorSupported();
+        }
+        finally {
+            StrictMode.setThreadPolicy(currentThreadPolicy);
+        }
+
+        if (!processorSupported) {
             manualEntryFallbackOrForced = true;
         }
         else {
