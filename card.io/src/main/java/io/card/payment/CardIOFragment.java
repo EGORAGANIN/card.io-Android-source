@@ -10,6 +10,7 @@ import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Rect;
+import android.graphics.Typeface;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.StrictMode;
@@ -138,11 +139,33 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
     public static final String EXTRA_SCAN_INSTRUCTIONS = "io.card.payment.scanInstructions";
 
     /**
+     * Float extra. Optional. Defaults R.dimens.cio_scan_instruction_line_height. Line height for scan instruction.
+     */
+    public static final String EXTRA_SCAN_INSTRUCTIONS_LINE_HEIGHT = "io.card.payment.scanInstructionsLineHeight";
+
+    /**
+     * Float extra. Optional. Defaults R.dimens.cio_scan_instruction_text_size. Text size for scan instruction.
+     */
+    public static final String EXTRA_SCAN_INSTRUCTIONS_TEXT_SIZE = "io.card.payment.scanInstructionsTextSize";
+
+    /**
      * Integer extra. Optional. If this value is provided the view will be inflated and will overlay
      * the camera during the scan process. The integer value must be the id of a valid layout
      * resource.
      */
     public static final String EXTRA_SCAN_OVERLAY_LAYOUT_ID = "io.card.payment.scanOverlayLayoutId";
+
+    /**
+     * Integer extra. Optional. Defaults R.drawable.cio_ic_flash_on. Drawable resource for on torch.
+     * Icon size container equals R.dimen.cio_torch_size.
+     */
+    public static final String EXTRA_TORCH_ON_DRAWABLE_ID = "io.card.payment.torchOnDrawableId";
+
+    /**
+     * Integer extra. Optional. Defaults R.drawable.cio_ic_flash_off. Drawable resource for on torch.
+     * Icon size container equals R.dimen.cio_torch_size.
+     */
+    public static final String EXTRA_TORCH_OFF_DRAWABLE_ID = "io.card.payment.torchOffDrawableId";
 
     private static int lastResult = 0xca8d10; // arbitrary. chosen to be well above
     // Activity.RESULT_FIRST_USER.
@@ -523,6 +546,13 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
     }
 
     /**
+     * Method present typeface for scan instruction.
+     */
+    protected Typeface getScanInstructionTypeFace() {
+        return Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD);
+    }
+
+    /**
      * Result callback.
      */
     protected void scanResult(int resultCode, @Nullable CreditCard card) {
@@ -600,9 +630,19 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
                 LayoutParams.MATCH_PARENT, Gravity.TOP));
         previewFrame.addView(mPreview);
 
-        mOverlay = new OverlayView(getContext(), this,null, Util.deviceSupportsTorch(getContext()));
+        int torchOnResId = R.drawable.cio_ic_flash_on;
+        int torchOffResId = R.drawable.cio_ic_flash_off;
+
+        if (getArguments() != null) {
+            torchOnResId = getArguments().getInt(EXTRA_TORCH_ON_DRAWABLE_ID, R.drawable.cio_ic_flash_on);
+            torchOffResId = getArguments().getInt(EXTRA_TORCH_OFF_DRAWABLE_ID, R.drawable.cio_ic_flash_off);
+        }
+
+        mOverlay = new OverlayView(getContext(), this,null, torchOnResId, torchOffResId, Util.deviceSupportsTorch(getContext()));
         mOverlay.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT,
                 LayoutParams.MATCH_PARENT));
+        mOverlay.setScanInstructionTypeFace(getScanInstructionTypeFace());
+
         if (getArguments() != null) {
 
             int color = getArguments().getInt(EXTRA_GUIDE_COLOR, 0);
@@ -630,6 +670,17 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
             String scanInstructions = getArguments().getString(EXTRA_SCAN_INSTRUCTIONS);
             if (scanInstructions != null) {
                 mOverlay.setScanInstructions(scanInstructions);
+            }
+
+            float defaultValue = -1.0f;
+            float lineHeight = getArguments().getFloat(EXTRA_SCAN_INSTRUCTIONS_LINE_HEIGHT, defaultValue);
+            if (lineHeight != defaultValue) {
+                mOverlay.setScanInstructionLineHeight(lineHeight);
+            }
+
+            float textSize = getArguments().getFloat(EXTRA_SCAN_INSTRUCTIONS_TEXT_SIZE, defaultValue);
+            if (textSize != defaultValue) {
+                mOverlay.setScanInstructionFontSize(textSize);
             }
         }
 

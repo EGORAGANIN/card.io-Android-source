@@ -18,8 +18,10 @@ import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.GradientDrawable.Orientation;
+import android.support.annotation.DrawableRes;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
@@ -104,7 +106,7 @@ class OverlayView extends View {
     private final Paint mLockedBackgroundPaint;
     private Path mLockedBackgroundPath;
     private Rect mCameraPreviewRect;
-    private final Torch mTorch;
+    private Torch mTorch;
     private Rect mTorchRect;
     private final boolean mShowTorch;
     private int mRotationFlip;
@@ -112,8 +114,11 @@ class OverlayView extends View {
     private float mGuideStrokeCornerRadius = 0;
     private float mGuideStrokeWidth;
     private RectF mGuideRoundedRect;
+    private Typeface mScanInstructionTypeFace = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD);
+    private float mScanInstructionFontSize;
+    private float mScanInstructionLineHeight;
 
-    public OverlayView(Context context, CardIOCameraControl cameraControl, AttributeSet attributeSet, boolean showTorch) {
+    public OverlayView(Context context, CardIOCameraControl cameraControl, AttributeSet attributeSet, @DrawableRes int torchOnResId, @DrawableRes int torchOffResId, boolean showTorch) {
         super(context, attributeSet);
 
         mShowTorch = showTorch;
@@ -124,7 +129,9 @@ class OverlayView extends View {
         // card.io is designed for an hdpi screen (density = 1.5);
         mScale = getResources().getDisplayMetrics().density / 1.5f;
 
-        mTorch = new Torch(TORCH_WIDTH * mScale, TORCH_HEIGHT * mScale);
+        if (torchOnResId != -1 && torchOffResId != -1) {
+            mTorch = new Torch(context, torchOnResId, torchOffResId);
+        }
 
         mGuidePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
@@ -134,6 +141,9 @@ class OverlayView extends View {
         mLockedBackgroundPaint.setColor(0xbb000000); // 75% black
 
         scanInstructions = LocalizedStrings.getString(StringKey.SCAN_GUIDE);
+
+        mScanInstructionFontSize = getResources().getDimension(R.dimen.cio_scan_instruction_text_size);
+        mScanInstructionLineHeight = getResources().getDimension(R.dimen.cio_scan_instruction_line_height);
     }
 
     public int getGuideColor() {
@@ -168,6 +178,18 @@ class OverlayView extends View {
         this.scanInstructions = scanInstructions;
     }
 
+    public void setScanInstructionTypeFace(Typeface scanInstructionTypeFace) {
+        mScanInstructionTypeFace = scanInstructionTypeFace;
+    }
+
+    public void setScanInstructionFontSize(float scanInstructionFontSize) {
+        mScanInstructionFontSize = scanInstructionFontSize;
+    }
+
+    public void setScanInstructionLineHeight(float scanInstructionLineHeight) {
+        mScanInstructionLineHeight = scanInstructionLineHeight;
+    }
+
     // Public methods used by CardIOActivity
     public void setGuideAndRotation(Rect rect, int rotation) {
         mRotation = rotation;
@@ -185,12 +207,13 @@ class OverlayView extends View {
             mRotationFlip = 1;
         }
         if (mCameraPreviewRect != null) {
-            Point torchPoint = new Point(mCameraPreviewRect.left + topEdgeUIOffset.x,
-                    mCameraPreviewRect.top + topEdgeUIOffset.y);
 
             // mTorchRect used only for touch lookup, not layout
-            mTorchRect = Util.rectGivenCenter(torchPoint, (int) (TORCH_WIDTH * mScale),
-                    (int) (TORCH_HEIGHT * mScale));
+            int torchSize = (int) getResources().getDimension(R.dimen.cio_torch_size);
+            int torchMargin = (int) getResources().getDimension(R.dimen.cio_torch_margin_top);
+            int widthCenter = mGuide.width() / 2 + mGuide.left;
+
+            mTorchRect = new Rect(widthCenter - torchSize / 2, mGuide.bottom + torchMargin, widthCenter + torchSize / 2, mGuide.bottom + torchSize + torchMargin);
 
             int[] gradientColors = { Color.WHITE, Color.BLACK };
             Orientation gradientOrientation = GRADIENT_ORIENTATIONS[(mRotation / 90) % 4];
@@ -243,21 +266,6 @@ class OverlayView extends View {
         }
     }
 
-    // Drawing methods
-    private Rect guideStrokeRect(int x1, int y1, int x2, int y2) {
-        Rect r;
-        int t2 = (int) (GUIDE_STROKE_WIDTH / 2 * mScale);
-        r = new Rect();
-
-        r.left = Math.min(x1, x2) - t2;
-        r.right = Math.max(x1, x2) + t2;
-
-        r.top = Math.min(y1, y2) - t2;
-        r.bottom = Math.max(y1, y2) + t2;
-
-        return r;
-    }
-
     @Override
     public void onDraw(Canvas canvas) {
 
@@ -287,24 +295,22 @@ class OverlayView extends View {
             if (mDInfo.numVisibleEdges() < 3) {
                 // Draw guide text
                 // Set up paint attributes
-                float guideHeight = GUIDE_LINE_HEIGHT * mScale;
-                float guideFontSize = GUIDE_FONT_SIZE * mScale;
-
-                Util.setupTextPaintStyle(mGuidePaint);
+                setupTextPaintStyle(mGuidePaint);
                 mGuidePaint.setTextAlign(Align.CENTER);
-                mGuidePaint.setTextSize(guideFontSize);
+                mGuidePaint.setTextSize(mScanInstructionFontSize);
 
                 // Translate and rotate text
-                canvas.translate(mGuide.left + mGuide.width() / 2, mGuide.top + mGuide.height() / 2);
+                canvas.translate(mGuide.left + mGuide.width() / 2, mGuide.top);
                 canvas.rotate(mRotationFlip * mRotation);
 
                 if (scanInstructions != null && scanInstructions != "") {
                     String[] lines = scanInstructions.split("\n");
-                    float y = -(((guideHeight * (lines.length - 1)) - guideFontSize) / 2) - 3;
+                    float marginTop = getResources().getDimension(R.dimen.cio_scan_instruction_margin_bottom);
+                    float y = -marginTop;
 
-                    for (int i = 0; i < lines.length; i++) {
+                    for (int i = lines.length - 1; i > -1; i--) {
                         canvas.drawText(lines[i], 0, y, mGuidePaint);
-                        y += guideHeight;
+                        y -= mScanInstructionLineHeight;
                     }
                 }
             }
@@ -314,7 +320,7 @@ class OverlayView extends View {
         if (mShowTorch) {
             // draw torch
             canvas.save();
-            canvas.translate(mTorchRect.exactCenterX(), mTorchRect.exactCenterY());
+            canvas.translate(mTorchRect.left, mTorchRect.top);
             canvas.rotate(mRotationFlip * mRotation);
             mTorch.draw(canvas);
             canvas.restore();
@@ -396,7 +402,7 @@ class OverlayView extends View {
 
         Canvas bc = new Canvas(mBitmap);
         Paint paint = new Paint();
-        Util.setupTextPaintStyle(paint);
+        setupTextPaintStyle(paint);
         paint.setTextSize(CARD_NUMBER_MARKUP_FONT_SIZE * mScale);
 
         int len = mDetectedCard.cardNumber.length();
@@ -417,12 +423,18 @@ class OverlayView extends View {
     }
 
     public void setTorchOn(boolean b) {
-        mTorch.setOn(b);
-        invalidate();
+        if (mTorch != null) {
+            mTorch.setOn(b);
+            invalidate();
+        }
     }
 
-    // for test
-    public Rect getTorchRect() {
-        return mTorchRect;
+    private void setupTextPaintStyle(Paint paint) {
+        paint.setColor(Color.WHITE);
+        paint.setStyle(Paint.Style.FILL);
+        paint.setTypeface(mScanInstructionTypeFace);
+        paint.setAntiAlias(true);
+        float[] black = { 0f, 0f, 0f };
+        paint.setShadowLayer(1.5f, 0.5f, 0f, Color.HSVToColor(200, black));
     }
 }

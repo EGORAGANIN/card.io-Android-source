@@ -3,5 +3,10 @@
 
     <dimen name="cio_guide_stroke_width">5dp</dimen>
     <dimen name="cio_guide_stroke_corner_radius">12dp</dimen>
+    <dimen name="cio_torch_size">36dp</dimen>
+    <dimen name="cio_torch_margin_top">32dp</dimen>
+    <dimen name="cio_scan_instruction_margin_bottom">32dp</dimen>
+    <dimen name="cio_scan_instruction_text_size">16sp</dimen>
+    <dimen name="cio_scan_instruction_line_height">24sp</dimen>
 
 </resources>

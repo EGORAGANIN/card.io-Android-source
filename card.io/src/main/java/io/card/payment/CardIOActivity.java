@@ -918,7 +918,7 @@ public final class CardIOActivity extends Activity implements CardIOCameraContro
                 LayoutParams.MATCH_PARENT, Gravity.TOP));
         previewFrame.addView(mPreview);
 
-        mOverlay = new OverlayView(this, this,  null, Util.deviceSupportsTorch(this));
+        mOverlay = new OverlayView(this, this,  null, R.drawable.cio_ic_flash_on, R.drawable.cio_ic_flash_off, Util.deviceSupportsTorch(this));
         mOverlay.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT,
                 LayoutParams.MATCH_PARENT));
         if (getIntent() != null) {
@@ -1044,13 +1044,4 @@ public final class CardIOActivity extends Activity implements CardIOCameraContro
         markedCardImage = null;
         finish();
     }
-
-    // for torch test
-    public Rect getTorchRect() {
-        if (mOverlay == null) {
-            return null;
-        }
-        return mOverlay.getTorchRect();
-    }
-
 }
