@@ -27,7 +27,7 @@ import java.util.List;
  * This class has various static utility methods.
  */
 
-class Util {
+public class Util {
     private static final String TAG = Util.class.getSimpleName();
     private static final boolean TORCH_BLACK_LISTED = (Build.MODEL.equals("DROID2"));
 

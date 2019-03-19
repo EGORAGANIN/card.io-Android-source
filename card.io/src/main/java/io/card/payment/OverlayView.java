@@ -68,23 +68,13 @@ import io.card.payment.i18n.StringKey;
  * independent of screen scale.
  * <p/>
  */
-class OverlayView extends View {
+public class OverlayView extends View {
     private static final String TAG = OverlayView.class.getSimpleName();
-
-    private static final float GUIDE_FONT_SIZE = 26.0f;
-    private static final float GUIDE_LINE_PADDING = 8.0f;
-    private static final float GUIDE_LINE_HEIGHT = GUIDE_FONT_SIZE + GUIDE_LINE_PADDING;
-    private static final float CARD_NUMBER_MARKUP_FONT_SIZE = GUIDE_FONT_SIZE + 2;
 
     private static final Orientation[] GRADIENT_ORIENTATIONS = { Orientation.TOP_BOTTOM,
             Orientation.LEFT_RIGHT, Orientation.BOTTOM_TOP, Orientation.RIGHT_LEFT };
 
-    private static final int GUIDE_STROKE_WIDTH = 17;
-
     private static final float CORNER_RADIUS_SIZE = 1000 / 15.0f;
-
-    private static final int TORCH_WIDTH = 70;
-    private static final int TORCH_HEIGHT = 50;
 
     private static final int BUTTON_TOUCH_TOLERANCE = 20;
 
@@ -403,7 +393,7 @@ class OverlayView extends View {
         Canvas bc = new Canvas(mBitmap);
         Paint paint = new Paint();
         setupTextPaintStyle(paint);
-        paint.setTextSize(CARD_NUMBER_MARKUP_FONT_SIZE * mScale);
+        paint.setTextSize(mScanInstructionFontSize);
 
         int len = mDetectedCard.cardNumber.length();
         float sf = mBitmap.getWidth() / (float)CardScanner.CREDIT_CARD_TARGET_WIDTH;

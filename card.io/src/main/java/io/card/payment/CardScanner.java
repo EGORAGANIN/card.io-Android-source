@@ -54,8 +54,8 @@ public class CardScanner implements Camera.PreviewCallback, Camera.AutoFocusCall
     static final int ORIENTATION_PORTRAIT = 1;
 
     // these values MUST match those in dmz_constants.h
-    static final int CREDIT_CARD_TARGET_WIDTH = 428; // kCreditCardTargetWidth
-    static final int CREDIT_CARD_TARGET_HEIGHT = 270; // kCreditCardTargetHeight
+    public static final int CREDIT_CARD_TARGET_WIDTH = 428; // kCreditCardTargetWidth
+    public static final int CREDIT_CARD_TARGET_HEIGHT = 270; // kCreditCardTargetHeight
 
     // NATIVE
     public static native boolean nUseNeon();
@@ -90,8 +90,8 @@ public class CardScanner implements Camera.PreviewCallback, Camera.AutoFocusCall
     private int mUnblurDigits = DEFAULT_UNBLUR_DIGITS;
 
     // read by CardIOActivity to set up Preview
-    final int mPreviewWidth = 640;
-    final int mPreviewHeight = 480;
+    public final int mPreviewWidth = 640;
+    public final int mPreviewHeight = 480;
 
     private int mFrameOrientation = ORIENTATION_PORTRAIT;
 
@@ -185,7 +185,7 @@ public class CardScanner implements Camera.PreviewCallback, Camera.AutoFocusCall
         return nUseNeon() || nUseTegra() || nUseX86();
     }
 
-    static boolean processorSupported() {
+    public static boolean processorSupported() {
         return (!manualFallbackForError && (usesSupportedProcessorArch()));
     }
 
@@ -234,7 +234,7 @@ public class CardScanner implements Camera.PreviewCallback, Camera.AutoFocusCall
         return null;
     }
 
-    void prepareScanner() {
+    public void prepareScanner() {
         mFirstPreviewFrame = true;
         mAutoFocusStartedAt = 0;
         mAutoFocusCompletedAt = 0;
@@ -285,7 +285,7 @@ public class CardScanner implements Camera.PreviewCallback, Camera.AutoFocusCall
     }
 
     @SuppressWarnings("deprecation")
-    boolean resumeScanning(SurfaceHolder holder) {
+    public boolean resumeScanning(SurfaceHolder holder) {
         if (mCamera == null) {
             prepareScanner();
         }
@@ -484,7 +484,7 @@ public class CardScanner implements Camera.PreviewCallback, Camera.AutoFocusCall
         return getGuideFrame(mFrameOrientation, mPreviewHeight, mPreviewWidth);
     }
 
-    Rect getGuideFrame(int width, int height) {
+    public Rect getGuideFrame(int width, int height) {
         return getGuideFrame(mFrameOrientation, width, height);
     }
 
@@ -544,7 +544,7 @@ public class CardScanner implements Camera.PreviewCallback, Camera.AutoFocusCall
      *
      * @param isManual callback for when autofocus is complete
      */
-    void triggerAutoFocus(boolean isManual) {
+    public void triggerAutoFocus(boolean isManual) {
         if (useCamera && !isAutoFocusing()) {
             try {
                 mAutoFocusStartedAt = System.currentTimeMillis();

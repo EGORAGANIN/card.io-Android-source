@@ -9,7 +9,7 @@ package io.card.payment;
  * java and native code/
  */
 
-class DetectionInfo {
+public class DetectionInfo {
     public boolean complete;
     public boolean topEdge;
     public boolean bottomEdge;
@@ -31,22 +31,20 @@ class DetectionInfo {
         detectedCard = new CreditCard();
     }
 
-    ;
-
-    boolean sameEdgesAs(DetectionInfo other) {
+    public boolean sameEdgesAs(DetectionInfo other) {
         return other.topEdge == this.topEdge && other.bottomEdge == this.bottomEdge
                 && other.leftEdge == this.leftEdge && other.rightEdge == this.rightEdge;
     }
 
-    boolean detected() {
+    public boolean detected() {
         return (topEdge && bottomEdge && rightEdge && leftEdge);
     }
 
-    boolean predicted() {
+    public boolean predicted() {
         return complete;
     }
 
-    CreditCard creditCard() {
+    public CreditCard creditCard() {
         String numberStr = new String();
         for (int i = 0; i < 16 && 0 <= prediction[i] && prediction[i] < 10; i++) {
             numberStr += String.valueOf(prediction[i]);
@@ -60,7 +58,7 @@ class DetectionInfo {
         return detectedCard;
     }
 
-    int numVisibleEdges() {
+    public int numVisibleEdges() {
         return (topEdge ? 1 : 0) + (bottomEdge ? 1 : 0) + (leftEdge ? 1 : 0) + (rightEdge ? 1 : 0);
     }
 }

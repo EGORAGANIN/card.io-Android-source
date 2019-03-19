@@ -1,7 +1,6 @@
 package io.card.payment;
 
 import android.Manifest;
-import android.app.ActionBar;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -11,7 +10,6 @@ import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.graphics.Typeface;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.StrictMode;
 import android.os.StrictMode.ThreadPolicy;
@@ -27,9 +25,7 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
-import android.view.WindowManager;
 import android.widget.FrameLayout;
-import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 
@@ -128,11 +124,6 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
     public static final String EXTRA_GUIDE_BORDER_THICKNESS = "io.card.payment.borderThickness";
 
     /**
-     * Boolean extra. Optional. Defaults to false. Activated and deactivated fullscreen mode after open and close fragment.
-     */
-    public static final String EXTRA_FULLSCREEN_MODE = "io.card.payment.fullscreenMode";
-
-    /**
      * String extra. Optional. Used to display instructions to the user while they are scanning
      * their card.
      */
@@ -147,13 +138,6 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
      * Float extra. Optional. Defaults R.dimens.cio_scan_instruction_text_size. Text size for scan instruction.
      */
     public static final String EXTRA_SCAN_INSTRUCTIONS_TEXT_SIZE = "io.card.payment.scanInstructionsTextSize";
-
-    /**
-     * Integer extra. Optional. If this value is provided the view will be inflated and will overlay
-     * the camera during the scan process. The integer value must be the id of a valid layout
-     * resource.
-     */
-    public static final String EXTRA_SCAN_OVERLAY_LAYOUT_ID = "io.card.payment.scanOverlayLayoutId";
 
     /**
      * Integer extra. Optional. Defaults R.drawable.cio_ic_flash_on. Drawable resource for on torch.
@@ -183,8 +167,6 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
 
     private static final String TAG = CardIOFragment.class.getSimpleName();
 
-    private static final int DEGREE_DELTA = 15;
-
     private static final int ORIENTATION_PORTRAIT = 1;
     private static final int ORIENTATION_PORTRAIT_UPSIDE_DOWN = 2;
     private static final int ORIENTATION_LANDSCAPE_RIGHT = 3;
@@ -205,7 +187,6 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
     private Rect mGuideFrame;
     private int mLastDegrees;
     private int mFrameOrientation;
-    private LinearLayout customOverlayLayout;
 
     private FrameLayout mMainLayout;
 
@@ -287,7 +268,6 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
             scanResult(RESULT_SCAN_NOT_AVAILABLE, mDetectedCard);
         }
         else {
-            // Guaranteed to be called in API 23+
             showCameraScannerOverlay();
         }
     }
@@ -298,9 +278,6 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
             scanResult(RESULT_SCAN_NOT_AVAILABLE, mDetectedCard);
         }
         else {
-            // guaranteed to be called in onCreate on API < 22, so it's ok that we're removing the window feature here
-//            requestWindowFeature(Window.FEATURE_NO_TITLE);
-
             showCameraScannerOverlay();
         }
     }
@@ -327,22 +304,6 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
     }
 
     private void showCameraScannerOverlay() {
-        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN && isFullScreenMode()) {
-            final Activity attachedActivity = getActivity();
-
-            if (attachedActivity != null) {
-                View decorView = attachedActivity.getWindow().getDecorView();
-                // Hide the status bar.
-                int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
-                decorView.setSystemUiVisibility(uiOptions);
-                // Remember that you should never show the action bar if the
-                // status bar is hidden, so hide that too if necessary.
-                ActionBar actionBar = getActivity().getActionBar();
-                if (null != actionBar) {
-                    actionBar.hide();
-                }
-            }
-        }
 
         try {
             mGuideFrame = new Rect();
@@ -396,14 +357,6 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
         }
 
         Util.logNativeMemoryStats();
-
-        if (isFullScreenMode()) {
-            final Activity attachedActivity = getActivity();
-            if (attachedActivity != null) {
-                attachedActivity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-                attachedActivity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-            }
-        }
 
         if (!restartPreview()) {
             StringKey error = StringKey.ERROR_CAMERA_UNEXPECTED_FAIL;
@@ -691,37 +644,5 @@ public class CardIOFragment extends Fragment implements CardIOScanDetection, Car
         previewParams.addRule(RelativeLayout.ALIGN_PARENT_TOP);
         previewParams.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
         mMainLayout.addView(previewFrame, previewParams);
-
-        if (getArguments() != null) {
-            if (customOverlayLayout != null) {
-                mMainLayout.removeView(customOverlayLayout);
-                customOverlayLayout = null;
-            }
-
-            int resourceId = getArguments().getInt(EXTRA_SCAN_OVERLAY_LAYOUT_ID, -1);
-            if (resourceId != -1) {
-                customOverlayLayout = new LinearLayout(getContext());
-                customOverlayLayout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT,
-                        LayoutParams.MATCH_PARENT));
-
-                LayoutInflater inflater = LayoutInflater.from(getContext());
-
-                inflater.inflate(resourceId, customOverlayLayout);
-                mMainLayout.addView(customOverlayLayout);
-            }
-        }
-    }
-
-    private boolean isFullScreenMode() {
-        final Bundle arguments = getArguments();
-
-        boolean result = false;
-
-        if (arguments != null) {
-            result = arguments.getBoolean(EXTRA_FULLSCREEN_MODE, false);
-        }
-
-        return result;
     }
 }
-

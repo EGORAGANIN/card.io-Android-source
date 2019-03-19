@@ -11,7 +11,7 @@ import android.graphics.drawable.Drawable;
 import android.support.annotation.DrawableRes;
 import android.support.v4.content.ContextCompat;
 
-class Torch {
+public class Torch {
     private static final String TAG = Torch.class.getSimpleName();
 
     private boolean mOn;
